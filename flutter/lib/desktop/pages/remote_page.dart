@@ -16,6 +16,7 @@ import '../../common/widgets/dialog.dart';
 import '../../common/widgets/toolbar.dart';
 import '../../models/model.dart';
 import '../../models/input_model.dart';
+import '../../models/multi_view_model.dart';
 import '../../models/platform_model.dart';
 import '../../models/shortcut_model.dart';
 import '../../common/shared_state.dart';
@@ -72,6 +73,12 @@ class RemotePage extends StatefulWidget {
     // disable a native keyboard hook already acquired by the destination page.
     (_lastState.value! as _RemotePageState)._releaseMacOSRemoteInput();
   }
+
+  void multiViewLeave() =>
+      (_lastState.value as _RemotePageState?)?._multiViewLeave();
+
+  void multiViewFocus() =>
+      (_lastState.value as _RemotePageState?)?._multiViewFocus();
 
   @override
   State<RemotePage> createState() {
@@ -290,6 +297,25 @@ class _RemotePageState extends State<RemotePage>
   // inactive tab could hand remote input to this page.
   bool get _windowsCanFocusRemoteInput =>
       _isSelectedTab && _blockableOverlayState.middleBlocked.isFalse;
+
+  void _multiViewLeave() {
+    if (!mounted) return;
+    _ffi.inputModel.enterOrLeave(false);
+    _rawKeyFocusNode.unfocus();
+  }
+
+  void _multiViewFocus() {
+    if (mounted &&
+        !_isWindowBlur &&
+        _windowsCanFocusRemoteInput &&
+        !_rawKeyFocusNode.hasFocus) {
+      _rawKeyFocusNode.requestFocus();
+    }
+  }
+
+  bool get _multiViewHidesToolbar =>
+      MultiViewModel.isGrid(widget.tabController?.length ?? 0) &&
+      !_isSelectedTab;
 
   bool get _isMacOSKeyboardContextActive {
     return stateGlobal.isFocused.value && !_isWindowBlur && _isSelectedTab;
@@ -782,7 +808,8 @@ class _RemotePageState extends State<RemotePage>
               // Use Overlay to enable rebuild every time on menu button click.
               // Hide toolbar when relative mouse mode is active to prevent
               // cursor from escaping to toolbar area.
-              Obx(() => _ffi.inputModel.relativeMouseMode.value
+              Obx(() => _ffi.inputModel.relativeMouseMode.value ||
+                      _multiViewHidesToolbar
                   ? const Offstage()
                   : _ffi.ffiModel.pi.isSet.isTrue
                       ? Overlay(initialEntries: [

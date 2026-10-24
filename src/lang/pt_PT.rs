@@ -816,5 +816,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("api_server_connection_tip", "O seu servidor personalizado utiliza HTTP não encriptado. Contacte o seu administrador para ativar o HTTPS."),
         ("api_server_empty_tip", "Com o servidor da API vazio, o seu servidor personalizado utiliza HTTP por predefinição. Contacte o seu administrador para ativar o HTTPS."),
         ("Enable multi-view", "Ativar vista múltipla"),
+        ("Multi-view", "Vista múltipla"),
+        ("Multi-view supports at most 4 tabs", "A vista múltipla suporta no máximo 4 separadores"),
     ].iter().cloned().collect();
 }

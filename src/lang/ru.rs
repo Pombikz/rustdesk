@@ -816,5 +816,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("api_server_connection_tip", ""),
         ("api_server_empty_tip", ""),
         ("Enable multi-view", "Включить мультипросмотр"),
+        ("Multi-view", "Мультипросмотр"),
+        ("Multi-view supports at most 4 tabs", "Мультипросмотр поддерживает не более 4 вкладок"),
     ].iter().cloned().collect();
 }

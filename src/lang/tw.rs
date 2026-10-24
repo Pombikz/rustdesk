@@ -816,5 +816,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("api_server_connection_tip", "自訂伺服器正在使用未加密的 HTTP。請聯絡管理員啟用 HTTPS。"),
         ("api_server_empty_tip", "API 伺服器留空時，自訂伺服器預設使用 HTTP。請聯絡管理員啟用 HTTPS。"),
         ("Enable multi-view", "啟用多視圖"),
+        ("Multi-view", "多視圖"),
+        ("Multi-view supports at most 4 tabs", "多視圖最多支援 4 個分頁"),
     ].iter().cloned().collect();
 }

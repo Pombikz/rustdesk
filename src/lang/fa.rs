@@ -814,5 +814,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("On", "روشن"),
         ("Off", "خاموش"),
         ("Enable multi-view", ""),
+        ("Multi-view", ""),
+        ("Multi-view supports at most 4 tabs", ""),
     ].iter().cloned().collect();
 }
