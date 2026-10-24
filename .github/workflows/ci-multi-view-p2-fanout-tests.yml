@@ -16,6 +16,38 @@ env:
   VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
 
 jobs:
+  # flutter_rust_bridge_codegen 1.80.1 lexes every module with proc-macro2 1.0.66.
+  lex-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Lex the changed files like the bridge codegen
+        shell: bash
+        run: |
+          mkdir -p /tmp/lexcheck/src && cd /tmp/lexcheck
+          printf '[package]\nname = "lexcheck"\nversion = "0.1.0"\nedition = "2021"\n[dependencies]\nproc-macro2 = { version = "=1.0.66", features = ["span-locations"] }\n' > Cargo.toml
+          cat > src/main.rs <<'RS'
+          fn main() {
+              let mut failed = false;
+              for path in std::env::args().skip(1) {
+                  let text = std::fs::read_to_string(&path).unwrap();
+                  match text.parse::<proc_macro2::TokenStream>() {
+                      Ok(_) => println!("ok   {path}"),
+                      Err(e) => {
+                          failed = true;
+                          let start = e.span().start();
+                          let line = text.lines().nth(start.line - 1).unwrap_or("");
+                          println!("FAIL {path}:{}:{}: {line}", start.line, start.column);
+                      }
+                  }
+              }
+              std::process::exit(failed as i32);
+          }
+          RS
+          cargo run -q -- $GITHUB_WORKSPACE/src/keyboard/input_broadcast.rs $GITHUB_WORKSPACE/src/keyboard.rs $GITHUB_WORKSPACE/src/keyboard/shortcuts.rs $GITHUB_WORKSPACE/src/flutter.rs $GITHUB_WORKSPACE/src/flutter_ffi.rs
+
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
 
