@@ -678,10 +678,12 @@ fn release_remote_keys(
     );
     // Focus-loss cleanup must still reset modifiers released outside the grab.
     TO_RELEASE.lock().unwrap().extend(held);
+    #[cfg(all(feature = "flutter", target_os = "windows"))]
+    super::input_broadcast::on_release_modifiers(session_id);
 }
 
 #[cfg(feature = "flutter")]
-fn send_windows_menu_ctrl(
+pub(super) fn send_windows_menu_ctrl(
     down: bool,
     swap_ctrl_cmd: bool,
     send: &impl Fn(&base::message_proto::KeyEvent),

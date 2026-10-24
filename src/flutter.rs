@@ -1758,6 +1758,33 @@ pub fn session_set_size(session_id: SessionID, display: usize, width: usize, hei
     }
 }
 
+/// The union of the peer displays `session_id` shows, as `(x, y, width, height)`.
+/// `None` until the session has drawn a display.
+#[cfg(target_os = "windows")]
+pub fn session_display_rect(
+    session: &FlutterSession,
+    session_id: &SessionID,
+) -> Option<(i32, i32, i32, i32)> {
+    let shown = session
+        .ui_handler
+        .session_handlers
+        .read()
+        .unwrap()
+        .get(session_id)?
+        .displays
+        .clone();
+    let peer_info = session.ui_handler.peer_info.read().unwrap();
+    let mut rect: Option<(i32, i32, i32, i32)> = None;
+    for d in shown.iter().filter_map(|i| peer_info.displays.get(*i)) {
+        let (left, top, right, bottom) = (d.x, d.y, d.x + d.width, d.y + d.height);
+        rect = Some(match rect {
+            Some((l, t, r, b)) => (l.min(left), t.min(top), r.max(right), b.max(bottom)),
+            None => (left, top, right, bottom),
+        });
+    }
+    rect.map(|(left, top, right, bottom)| (left, top, right - left, bottom - top))
+}
+
 #[inline]
 pub fn session_register_pixelbuffer_texture(session_id: SessionID, display: usize, ptr: usize) {
     for s in sessions::get_sessions() {
