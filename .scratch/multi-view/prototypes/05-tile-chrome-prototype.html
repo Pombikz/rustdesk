@@ -1,0 +1,454 @@
+<!doctype html>
+<!--
+  PROTOTYPE, throw away. Answers wayfinder ticket "What chrome does each tile show?"
+  (.scratch/multi-view/issues/05). Four structurally different tile-chrome variants of the
+  RustDesk remote window in multi-view, switchable via ?variant=A|B|C|D and the bottom bar.
+  It is an HTML mock, not Flutter: the 2x2 grid itself was already proven on real sessions
+  (ticket 04), so this only asks what goes around the video. No persistence.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tile chrome prototype</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0,0">
+<style>
+  :root {
+    --accent: #0071ff;
+    --tabbar: #24272b;
+    --tab: #2f3338;
+    --tab-sel: #3a3f45;
+    --text: #e6e8eb;
+    --muted: #9aa1a9;
+    --page: #15171a;
+    --warn: #f0a020;
+    --bad: #e5484d;
+    --good: #30c060;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--page); color: var(--text);
+    font: 13px/1.35 "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  .ms { font-family: "Material Symbols Outlined"; font-size: 18px; line-height: 1;
+    font-weight: normal; font-style: normal; display: inline-block; user-select: none; }
+
+  #stage { position: absolute; inset: 0 300px 56px 0; display: flex; align-items: center;
+    justify-content: center; padding: 16px; }
+  #stage.fs { inset: 0; padding: 0; z-index: 5; }
+  .win { position: relative; width: 100%; height: 100%; max-width: 1500px; max-height: 900px;
+    background: #000; border: 1px solid #000; box-shadow: 0 10px 40px #0008;
+    display: flex; flex-direction: column; overflow: hidden; }
+  #stage.fs .win { max-width: none; max-height: none; border: 0; }
+
+  /* window title / tab bar */
+  .tabbar { height: 34px; flex: none; background: var(--tabbar); display: flex; align-items: stretch; }
+  .tabbar .logo { width: 34px; display: grid; place-items: center; color: var(--accent); }
+  .tab { display: flex; align-items: center; gap: 6px; padding: 0 8px 0 10px; min-width: 120px;
+    max-width: 200px; color: var(--muted); border-right: 1px solid #0004; cursor: default; position: relative; }
+  .tab.sel { background: var(--tab-sel); color: var(--text); }
+  .tab.sel::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent); }
+  .tab .x { margin-left: auto; opacity: .6; font-size: 15px; cursor: pointer; }
+  .tab .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex: none; }
+  .tab .dot.re { background: var(--warn); }
+  .tab .caret { font-size: 16px; cursor: pointer; opacity: .8; }
+  .tab .ping { font-size: 11px; color: var(--muted); }
+  .tbtn { width: 34px; display: grid; place-items: center; color: var(--muted); cursor: pointer; }
+  .tbtn:hover { background: #ffffff10; color: var(--text); }
+  .tbtn.on { color: var(--accent); }
+  .tbtn.dis { opacity: .35; pointer-events: none; }
+  .drag { flex: 1; }
+  .wc { width: 44px; display: grid; place-items: center; color: var(--muted); }
+  .slimbar { height: 26px; }
+  .slimbar .title { display: flex; align-items: center; padding: 0 8px; color: var(--muted); gap: 6px; font-size: 12px; }
+
+  /* body / tiles */
+  .body { position: relative; flex: 1; background: #000; }
+  .tile { position: absolute; container-type: size; overflow: hidden; background: #000;
+    display: flex; flex-direction: column; }
+  .tile .vwrap { position: relative; flex: 1; display: grid; place-items: center; container-type: size; }
+  .video { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; }
+  .video .sky { position: absolute; inset: 0; background-size: 200% 100%; animation: pan 18s linear infinite alternate; }
+  @keyframes pan { from { background-position: 0 0; } to { background-position: 100% 0; } }
+  .video .hp { position: absolute; left: 3%; bottom: 5%; width: 22%; height: 3.2%; background: #0007; border-radius: 2px; }
+  .video .hp i { display: block; height: 100%; background: #d33; border-radius: 2px; }
+  .video .map { position: absolute; right: 3%; top: 5%; width: 13%; aspect-ratio: 1; border-radius: 50%;
+    background: #0008; border: 2px solid #fff4; }
+  .video .bar { position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%); display: flex; gap: .6%; width: 40%; }
+  .video .bar b { flex: 1; aspect-ratio: 1; background: #0009; border: 1px solid #fff3; border-radius: 3px; }
+  .video .xh { position: absolute; left: 50%; top: 50%; width: 1.4%; aspect-ratio: 1; border: 2px solid #fffa;
+    border-radius: 50%; transform: translate(-50%, -50%); }
+  .video .rc { position: absolute; inset: 0; display: grid; place-items: center; background: #000a;
+    color: var(--warn); font-size: 14px; }
+  .focusring { position: absolute; inset: 0; pointer-events: none; border: 1px solid #ffffff1a; z-index: 3; }
+  .tile.foc .focusring { border: 3px solid var(--accent); }
+  .tile.dim .vwrap { filter: brightness(.82); }
+  .emptycell { position: absolute; display: grid; place-items: center; color: #555; border: 1px dashed #333; }
+
+  /* RustDesk-like floating toolbar */
+  .rtb { position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 4; display: flex;
+    flex-direction: column; align-items: center; }
+  .rtb .row { display: flex; gap: 2px; padding: 4px; background: #2a2e33f0; border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 8px #0008; align-items: center; }
+  .rtb .ib { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; cursor: pointer; color: #cfd3d8; }
+  .rtb .ib:hover { background: #ffffff18; }
+  .rtb .ib.red { color: #fff; background: #c43c3c; }
+  .rtb .handle { width: 46px; height: 14px; background: #2a2e33e0; border-radius: 0 0 6px 6px; display: grid; place-items: center;
+    color: var(--muted); cursor: pointer; }
+  .rtb .handle .ms { font-size: 14px; }
+  .rtb.collapsed .row { display: none; }
+  .rtb .lbl { padding: 0 8px 0 4px; font-size: 12px; color: var(--text); display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+  .rtb .lbl .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+  .rtb .sep { width: 1px; height: 18px; background: #ffffff22; margin: 0 3px; }
+  .rtb.small .ib { width: 22px; height: 22px; } .rtb.small .ib .ms { font-size: 15px; }
+
+  .badge { position: absolute; left: 8px; bottom: 8px; z-index: 4; display: flex; gap: 6px; align-items: center;
+    background: #000a; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+  .badge .ms { font-size: 16px; cursor: pointer; }
+  .nametag { position: absolute; left: 6px; top: 6px; z-index: 4; font-size: 11px; background: #000a;
+    padding: 2px 6px; border-radius: 3px; color: #ddd; display: flex; gap: 5px; align-items: center; }
+  .slot2 { border: 1px dashed #ffffff40; color: #ffffff70; border-radius: 3px; padding: 0 4px; font-size: 10px;
+    letter-spacing: .03em; white-space: nowrap; }
+
+  /* variant D strip */
+  .strip { height: 24px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 4px 0 8px;
+    background: #23262a; color: var(--muted); font-size: 12px; z-index: 4; }
+  .tile.foc .strip { background: var(--accent); color: #fff; }
+  .strip .nm { color: var(--text); font-weight: 600; }
+  .tile.foc .strip .nm { color: #fff; }
+  .strip .sp { flex: 1; }
+  .strip .ms { font-size: 16px; cursor: pointer; padding: 2px; border-radius: 3px; }
+  .strip .ms:hover { background: #ffffff22; }
+  .strip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+  .strip .dot.re { background: var(--warn); }
+
+  /* fullscreen reveal edge (C) */
+  .reveal { position: absolute; top: 0; left: 0; right: 0; height: 6px; z-index: 6; }
+  .tabbar.floating { position: absolute; top: 0; left: 0; right: 0; z-index: 7; transform: translateY(-100%);
+    transition: transform .15s; box-shadow: 0 2px 10px #000a; }
+  .reveal:hover + .tabbar.floating, .tabbar.floating:hover { transform: none; }
+
+  /* menu popup */
+  .menu { position: absolute; z-index: 9; background: #2a2e33; border: 1px solid #ffffff1a; border-radius: 6px;
+    box-shadow: 0 6px 20px #000a; padding: 4px; min-width: 200px; }
+  .menu .hd { padding: 4px 8px 6px; color: var(--muted); font-size: 11px; border-bottom: 1px solid #ffffff14; margin-bottom: 4px; }
+  .menu .it { padding: 5px 8px; border-radius: 4px; display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .menu .it:hover { background: #ffffff14; }
+
+  #toast { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); background: #111d; border: 1px solid var(--accent);
+    padding: 6px 12px; border-radius: 6px; z-index: 20; pointer-events: none; opacity: 0; transition: opacity .2s; }
+  #toast.show { opacity: 1; }
+
+  /* side panel: notes + state */
+  #side { position: absolute; top: 0; right: 0; bottom: 56px; width: 300px; padding: 14px; border-left: 1px solid #ffffff12;
+    overflow: auto; background: #1b1e21; }
+  #side h2 { font-size: 15px; margin: 0 0 4px; }
+  #side h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 6px; }
+  #side p, #side li { color: #c9cdd2; margin: 4px 0; }
+  #side ul { padding-left: 16px; margin: 4px 0; }
+  #side button { background: #2c3035; color: var(--text); border: 1px solid #ffffff1c; border-radius: 4px; padding: 4px 8px;
+    margin: 0 4px 4px 0; cursor: pointer; font: inherit; }
+  #side button:hover { border-color: var(--accent); }
+  #state { font: 11px/1.4 Consolas, monospace; white-space: pre; background: #111; padding: 8px; border-radius: 4px; color: #9fd; }
+
+  /* switcher */
+  #switcher { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center;
+    gap: 4px; background: #fff; color: #111; border-radius: 999px; padding: 4px; box-shadow: 0 4px 18px #000a; font-weight: 600; }
+  #switcher button { border: 0; background: #eee; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+  #switcher span { padding: 0 12px; min-width: 260px; text-align: center; }
+  #stage.fs ~ #switcher { opacity: .35; } #stage.fs ~ #switcher:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="stage"><div class="win" id="win"></div></div>
+<div id="toast"></div>
+<aside id="side"></aside>
+<div id="switcher">
+  <button id="prev" title="Previous variant (←)">◀</button>
+  <span id="vlabel"></span>
+  <button id="next" title="Next variant (→)">▶</button>
+</div>
+
+<script>
+const VARIANTS = {
+  A: { name: 'Toolbar per tile', notes: [
+    'Every tile keeps a small RustDesk toolbar at its own top edge. Only the focused tile\'s opens; the others show just the handle.',
+    'Peer name and state: bottom-left badge, which is also the maximise button (as in the ticket 04 prototype).',
+    'Tab bar unchanged; grid button next to +.',
+    'Phase 2 slot: in the badge.'] },
+  B: { name: 'One toolbar for the focused tile', notes: [
+    'One floating toolbar for the whole window, at the top centre. It names the tile it acts on and carries the layout and maximise buttons.',
+    'Tiles are bare video with a focus ring and a small top-left name tag.',
+    'Tab bar unchanged; the grid button moves into the toolbar.',
+    'Phase 2 slot: in the toolbar label and the name tags.'] },
+  C: { name: 'Tab bar is the controller', notes: [
+    'No floating toolbar while the multi-view is on. The selected tab (= focused tile) gets a ▾ that opens the toolbar\'s menus for that tile.',
+    'Tabs show connection state and ping. Tiles show only the focus ring.',
+    'Double-click a tile to maximise / restore it.',
+    'Fullscreen: tab bar slides in when the mouse touches the top edge.',
+    'Phase 2 slot: on the tabs.'] },
+  D: { name: 'Title strip per tile', notes: [
+    'While the multi-view is on, the tab bar is replaced by a slim title bar; each tile gets its own 24 px strip instead.',
+    'Strip: state dot, name, ping/codec, phase 2 slot, ⋯ (toolbar menus), maximise, close. Focused strip is blue.',
+    'Costs 24 px of each tile\'s height, so video letterboxes slightly.',
+    'Fullscreen hides the title bar but keeps the strips.'] },
+};
+const KEYS = Object.keys(VARIANTS);
+const PEERS = [
+  { id: '183 552 901', name: 'Alpha', sky: 'linear-gradient(100deg,#20476b,#4f8fb5 40%,#c9a46b 70%,#3b5d2d)' },
+  { id: '731 090 412', name: 'Bravo', sky: 'linear-gradient(100deg,#3a1d4f,#7a3f7a 45%,#d27d4a 75%,#2c2238)' },
+  { id: '402 118 655', name: 'Charlie', sky: 'linear-gradient(100deg,#163b2b,#3f7a4f 40%,#9fc070 70%,#24412b)' },
+  { id: '955 270 038', name: 'Delta', sky: 'linear-gradient(100deg,#4b2a12,#a0602a 40%,#e3c27a 70%,#5a3a1a)' },
+];
+
+const params = new URLSearchParams(location.search);
+const S = {
+  variant: KEYS.includes(params.get('variant')) ? params.get('variant') : 'A',
+  tabs: PEERS.map(p => ({ ...p, status: 'connected', ping: 8 + Math.floor(Math.random() * 20) })),
+  focused: 0,
+  gridOn: true,
+  maximized: null,
+  fullscreen: false,
+  menu: null, // { tile, x, y }
+  lastAction: '-',
+};
+
+const $ = s => document.querySelector(s);
+const icon = (n, extra = '') => `<span class="ms" ${extra}>${n}</span>`;
+const gridEffective = () => S.gridOn && S.tabs.length >= 2 && S.tabs.length <= 4;
+const slot = () => `<span class="slot2" title="Phase 2: leader / follower marker (ticket 11)">LEADER/FOLLOW</span>`;
+const dot = t => `<span class="dot ${t.status === 'connected' ? '' : 're'}"></span>`;
+const TOOLBAR = [['push_pin', 'Pin toolbar'], ['desktop_windows', 'Monitor'], ['shield', 'Control'],
+  ['tv', 'Display'], ['keyboard', 'Keyboard'], ['chat', 'Chat'], ['call', 'Voice call'], ['radio_button_checked', 'Record']];
+
+function act(what, tile) {
+  const t = S.tabs[tile];
+  S.lastAction = `${what} → ${t ? t.name : 'window'}`;
+  const el = $('#toast');
+  el.textContent = S.lastAction;
+  el.classList.add('show');
+  clearTimeout(act.t);
+  act.t = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+function cells(n, W, H) {
+  if (!gridEffective()) return null;
+  if (n === 2) return [0, 1].map(i => ({ x: i * W / 2, y: 0, w: W / 2, h: H }));
+  return [0, 1, 2, 3].map(i => ({ x: (i % 2) * W / 2, y: Math.floor(i / 2) * H / 2, w: W / 2, h: H / 2 }));
+}
+
+function videoHtml(t) {
+  return `<div class="video"><div class="sky" style="background-image:${t.sky}"></div>
+    <div class="map"></div><div class="hp"><i style="width:${50 + (t.ping % 5) * 10}%"></i></div>
+    <div class="bar">${'<b></b>'.repeat(8)}</div><div class="xh"></div>
+    ${t.status === 'connected' ? '' : `<div class="rc">${icon('sync')}&nbsp;Reconnecting…</div>`}</div>`;
+}
+
+function toolbarHtml(i, { label = false, small = false, collapsed = false, layout = false } = {}) {
+  const t = S.tabs[i];
+  const items = TOOLBAR.map(([ic, nm]) => `<div class="ib" title="${nm}" data-act="${nm}" data-tile="${i}">${icon(ic)}</div>`).join('');
+  const lbl = label ? `<div class="lbl">${dot(t)}${t.name}${slot()}</div><div class="sep"></div>` : '';
+  const lay = layout ? `<div class="sep"></div>
+    <div class="ib" title="Multi-view on/off" data-cmd="grid">${icon(S.gridOn ? 'grid_view' : 'crop_square')}</div>
+    <div class="ib" title="${S.maximized ? 'Restore tile' : 'Maximise focused tile'}" data-cmd="max" data-tile="${i}">${icon(S.maximized ? 'fullscreen_exit' : 'open_in_full')}</div>` : '';
+  return `<div class="rtb ${small ? 'small' : ''} ${collapsed ? 'collapsed' : ''}" data-rtb="${i}">
+    <div class="row">${lbl}${items}${lay}<div class="sep"></div>
+      <div class="ib" title="Fullscreen" data-cmd="fs">${icon(S.fullscreen ? 'fullscreen_exit' : 'fullscreen')}</div>
+      <div class="ib red" title="Disconnect" data-cmd="close" data-tile="${i}">${icon('close')}</div></div>
+    <div class="handle" data-cmd="handle" data-tile="${i}">${icon(collapsed ? 'expand_more' : 'expand_less')}</div></div>`;
+}
+
+function tabbarHtml({ caret = false, status = false, gridBtn = true, cls = '' } = {}) {
+  const tabs = S.tabs.map((t, i) => `<div class="tab ${i === S.focused ? 'sel' : ''}" data-focus="${i}">
+      ${status ? dot(t) : icon('desktop_windows', 'style="font-size:15px"')}<span>${t.name}</span>
+      ${status ? `<span class="ping">${t.ping}ms</span>` : ''}
+      ${caret && i === S.focused && gridEffective() ? `<span class="ms caret" data-cmd="tabmenu" data-tile="${i}">expand_more</span>` : ''}
+      ${status && gridEffective() ? slot() : ''}
+      <span class="ms x" data-cmd="close" data-tile="${i}">close</span></div>`).join('');
+  return `<div class="tabbar ${cls}"><div class="logo">${icon('cast_connected')}</div>${tabs}
+    <div class="tbtn ${S.tabs.length >= 4 ? 'dis' : ''}" data-cmd="add" title="Add a peer">${icon('add')}</div>
+    ${gridBtn ? `<div class="tbtn ${S.gridOn ? 'on' : ''} ${S.tabs.length > 4 ? 'dis' : ''}" data-cmd="grid" title="Multi-view">${icon('grid_view')}</div>` : ''}
+    <div class="drag"></div>${windowControls()}</div>`;
+}
+
+const windowControls = () => `<div class="wc">${icon('remove')}</div><div class="wc">${icon('crop_square')}</div><div class="wc">${icon('close')}</div>`;
+
+function tileChrome(i, grid) {
+  const t = S.tabs[i];
+  const foc = i === S.focused;
+  const v = S.variant;
+  if (!grid) return v === 'D' ? '' : toolbarHtml(i, { layout: v === 'B' });
+  if (v === 'A') {
+    return toolbarHtml(i, { small: true, collapsed: !foc }) +
+      `<div class="badge">${dot(t)}<span>${t.name}</span><span style="color:var(--muted)">${t.ping}ms</span>${slot()}
+       <span class="ms" data-cmd="max" data-tile="${i}" title="Maximise / restore">${S.maximized ? 'fullscreen_exit' : 'fullscreen'}</span></div>`;
+  }
+  if (v === 'B') return `<div class="nametag">${dot(t)}${t.name}${slot()}</div>`;
+  return '';
+}
+
+function render() {
+  const v = S.variant;
+  const grid = gridEffective();
+  const stage = $('#stage');
+  stage.classList.toggle('fs', S.fullscreen);
+  let top = '';
+  if (v === 'D' && grid) {
+    top = S.fullscreen ? '' : `<div class="tabbar slimbar"><div class="title">${icon('cast_connected', 'style="font-size:15px;color:var(--accent)"')}
+      RustDesk · ${S.tabs.length} peers</div>
+      <div class="tbtn ${S.tabs.length >= 4 ? 'dis' : ''}" data-cmd="add" title="Add a peer">${icon('add')}</div>
+      <div class="tbtn on" data-cmd="grid" title="Multi-view off">${icon('grid_view')}</div>
+      <div class="tbtn" data-cmd="fs" title="Fullscreen">${icon('fullscreen')}</div>
+      <div class="drag"></div>${windowControls()}</div>`;
+  } else if (S.fullscreen) {
+    top = v === 'C' ? `<div class="reveal"></div>${tabbarHtml({ caret: true, status: true, cls: 'floating' })}` : '';
+  } else {
+    top = tabbarHtml({ caret: v === 'C', status: v === 'C', gridBtn: v !== 'B' || !grid });
+  }
+  $('#win').innerHTML = `${top}<div class="body" id="body"></div>`;
+  const body = $('#body');
+  const W = body.clientWidth, H = body.clientHeight;
+  const cs = cells(S.tabs.length, W, H);
+  let html = '';
+  S.tabs.forEach((t, i) => {
+    let r = { x: 0, y: 0, w: W, h: H }, visible = i === S.focused;
+    if (cs) {
+      if (S.maximized) visible = t.id === S.maximized;
+      else { r = cs[i]; visible = true; }
+    }
+    if (!visible) return;
+    const foc = i === S.focused;
+    const strip = v === 'D' && cs ? `<div class="strip">${dot(t)}<span class="nm">${t.name}</span>
+        <span>${t.ping}ms · AV1</span>${slot()}<span class="sp"></span>
+        <span class="ms" data-cmd="tilemenu" data-tile="${i}" title="Toolbar menus">more_horiz</span>
+        <span class="ms" data-cmd="max" data-tile="${i}" title="Maximise / restore">${S.maximized ? 'close_fullscreen' : 'open_in_full'}</span>
+        <span class="ms" data-cmd="close" data-tile="${i}" title="Disconnect">close</span></div>` : '';
+    html += `<div class="tile ${cs && foc ? 'foc' : ''} ${cs && !foc ? 'dim' : ''}" data-tile-el="${i}"
+      style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px">
+      ${strip}<div class="vwrap">${videoHtml(t)}</div>${tileChrome(i, !!cs)}
+      ${cs && !S.maximized ? '<div class="focusring"></div>' : ''}</div>`;
+  });
+  if (cs && !S.maximized && S.tabs.length === 3) {
+    const r = cs[3];
+    html += `<div class="emptycell" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px" data-cmd="add">${icon('add')}&nbsp;Add a peer</div>`;
+  }
+  if (v === 'B' && cs) html += toolbarHtml(S.focused, { label: true, layout: true });
+  body.innerHTML = html;
+  if (S.menu) {
+    const t = S.tabs[S.menu.tile];
+    const m = document.createElement('div');
+    m.className = 'menu';
+    m.style.left = S.menu.x + 'px';
+    m.style.top = S.menu.y + 'px';
+    m.innerHTML = `<div class="hd">Acts on ${t.name}</div>` +
+      TOOLBAR.slice(1).map(([ic, nm]) => `<div class="it" data-act="${nm}" data-tile="${S.menu.tile}">${icon(ic)}${nm}</div>`).join('') +
+      `<div class="it" data-cmd="max" data-tile="${S.menu.tile}">${icon('open_in_full')}${S.maximized ? 'Restore tile' : 'Maximise tile'}</div>
+       <div class="it" data-cmd="fs">${icon('fullscreen')}Fullscreen</div>`;
+    $('#win').appendChild(m);
+  }
+  renderSide();
+  $('#vlabel').textContent = `${v} (${VARIANTS[v].name})`;
+}
+
+function renderSide() {
+  const v = VARIANTS[S.variant];
+  $('#side').innerHTML = `<h2>${S.variant}: ${v.name}</h2>
+    <ul>${v.notes.map(n => `<li>${n}</li>`).join('')}</ul>
+    <h3>Try</h3>
+    <p>Click a tile to focus it (first click is not sent to the peer). Use the variant's own maximise, toolbar and grid controls.</p>
+    <button data-cmd="fs">${S.fullscreen ? 'Leave' : 'Enter'} fullscreen</button>
+    <button data-cmd="drop">Drop / restore ${S.tabs[Math.min(2, S.tabs.length - 1)].name}</button>
+    <button data-cmd="add">Add tab</button><button data-cmd="close" data-tile="${S.tabs.length - 1}">Close last tab</button>
+    <h3>State</h3><div id="state">${JSON.stringify({
+      variant: S.variant, tabs: S.tabs.map(t => t.name + (t.status === 'connected' ? '' : ' (reconnecting)')),
+      focusedTile: S.tabs[S.focused]?.name, multiView: S.gridOn, layout: gridEffective() ? (S.tabs.length === 2 ? '1x2' : '2x2') : '1',
+      maximized: S.tabs.find(t => t.id === S.maximized)?.name ?? null, fullscreen: S.fullscreen, lastAction: S.lastAction,
+    }, null, 2)}</div>`;
+}
+
+function focus(i) {
+  if (i == null || i === S.focused) return false;
+  S.focused = i;
+  S.lastAction = `focus → ${S.tabs[i].name}`;
+  return true;
+}
+
+function cmd(c, tile, ev) {
+  const t = S.tabs[tile];
+  switch (c) {
+    case 'grid': S.gridOn = !S.gridOn; S.maximized = null; break;
+    case 'max':
+      if (!gridEffective()) break;
+      if (S.maximized) S.maximized = null;
+      else { focus(tile ?? S.focused); S.maximized = S.tabs[S.focused].id; }
+      break;
+    case 'fs': S.fullscreen = !S.fullscreen; break;
+    case 'add':
+      if (S.tabs.length < 4) {
+        const p = PEERS.find(p => !S.tabs.some(t => t.id === p.id));
+        S.tabs.push({ ...p, status: 'connected', ping: 12 });
+        S.focused = S.tabs.length - 1;
+      }
+      break;
+    case 'close':
+      if (!t || S.tabs.length <= 1) break;
+      if (S.maximized === t.id) S.maximized = null;
+      S.tabs.splice(tile, 1);
+      S.focused = Math.min(S.focused, S.tabs.length - 1);
+      break;
+    case 'drop': {
+      const d = S.tabs[Math.min(2, S.tabs.length - 1)];
+      d.status = d.status === 'connected' ? 'reconnecting' : 'connected';
+      break;
+    }
+    case 'handle': if (tile !== S.focused) focus(tile); else act('Toolbar collapse', tile); break;
+    case 'tabmenu': case 'tilemenu': {
+      const wr = $('#win').getBoundingClientRect(), r = ev.target.getBoundingClientRect();
+      S.menu = { tile, x: Math.min(r.left - wr.left, wr.width - 220), y: r.bottom - wr.top + 2 };
+      focus(tile);
+      render();
+      return;
+    }
+  }
+  S.menu = null;
+  render();
+}
+
+document.addEventListener('click', ev => {
+  const a = ev.target.closest('[data-act]');
+  const c = ev.target.closest('[data-cmd]');
+  const tileEl = ev.target.closest('[data-tile-el]');
+  const tabEl = ev.target.closest('[data-focus]');
+  if (c) return cmd(c.dataset.cmd, c.dataset.tile != null ? +c.dataset.tile : undefined, ev);
+  if (a) {
+    const tile = +a.dataset.tile;
+    if (gridEffective() && tile !== S.focused && !ev.target.closest('.menu')) { focus(tile); S.menu = null; return render(); }
+    act(a.dataset.act, tile); S.menu = null; return render();
+  }
+  if (S.menu) { S.menu = null; return render(); }
+  if (tabEl) { focus(+tabEl.dataset.focus); return render(); }
+  if (tileEl) { if (!focus(+tileEl.dataset.tileEl)) act('click sent', +tileEl.dataset.tileEl); return render(); }
+});
+document.addEventListener('dblclick', ev => {
+  const tileEl = ev.target.closest('[data-tile-el]');
+  if (S.variant === 'C' && tileEl && gridEffective()) cmd('max', +tileEl.dataset.tileEl);
+});
+
+function setVariant(k) {
+  S.variant = k; S.menu = null;
+  const u = new URL(location.href); u.searchParams.set('variant', k); history.replaceState(null, '', u);
+  render();
+}
+const step = d => setVariant(KEYS[(KEYS.indexOf(S.variant) + d + KEYS.length) % KEYS.length]);
+$('#prev').onclick = e => { e.stopPropagation(); step(-1); };
+$('#next').onclick = e => { e.stopPropagation(); step(1); };
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea,[contenteditable]')) return;
+  if (e.key === 'ArrowLeft') step(-1);
+  if (e.key === 'ArrowRight') step(1);
+  if (e.key === 'Escape' && S.fullscreen) cmd('fs');
+});
+addEventListener('resize', render);
+document.fonts?.ready.then(render);
+render();
+</script>
+</body>
+</html>
