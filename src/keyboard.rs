@@ -81,6 +81,8 @@ lazy_static::lazy_static! {
 }
 
 pub mod shortcuts;
+#[cfg(all(feature = "flutter", target_os = "windows"))]
+pub mod input_broadcast;
 
 pub mod client {
     use super::*;
@@ -362,6 +364,8 @@ pub mod client {
         for key_event in event_to_key_events(peer, &event, keyboard_mode, lock_modes) {
             send_key_event(&key_event);
         }
+        #[cfg(all(feature = "flutter", target_os = "windows"))]
+        crate::keyboard::input_broadcast::on_key_event(None, event, keyboard_mode, lock_modes);
     }
 
     pub fn process_event_with_session<T: InvokeUiSession>(
@@ -397,6 +401,13 @@ pub mod client {
         for key_event in event_to_key_events(peer, &event, keyboard_mode, lock_modes) {
             session.send_key_event(&key_event);
         }
+        #[cfg(all(feature = "flutter", target_os = "windows"))]
+        crate::keyboard::input_broadcast::on_key_event(
+            Some(&session_id),
+            event,
+            keyboard_mode,
+            lock_modes,
+        );
     }
 
     pub fn get_modifiers_state(

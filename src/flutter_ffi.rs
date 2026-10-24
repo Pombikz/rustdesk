@@ -2059,6 +2059,15 @@ pub fn session_send_mouse(session_id: SessionID, msg: String) {
     }
 }
 
+/// `followers` is a JSON array of session id strings; `[]` turns input broadcast off.
+pub fn session_set_input_broadcast(leader: SessionID, followers: String) -> SyncReturn<()> {
+    #[cfg(target_os = "windows")]
+    crate::keyboard::input_broadcast::set_snapshot(leader, &followers);
+    #[cfg(not(target_os = "windows"))]
+    let _ = (leader, followers);
+    SyncReturn(())
+}
+
 pub fn session_restart_remote_device(session_id: SessionID) {
     if let Some(session) = sessions::get_session_by_session_id(&session_id) {
         session.restart_remote_device();

@@ -1373,6 +1373,10 @@ class RustdeskImpl {
         () => js.context.callMethod('setByName', ['send_mouse', msg]));
   }
 
+  // Input broadcast needs the multi-view, which Web does not have.
+  void sessionSetInputBroadcast(
+      {required UuidValue leader, required String followers, dynamic hint}) {}
+
   Future<void> sessionRestartRemoteDevice(
       {required UuidValue sessionId, dynamic hint}) {
     return Future(() => js.context.callMethod('setByName', ['restart']));
