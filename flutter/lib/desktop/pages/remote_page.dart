@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_hbb/models/state_model.dart';
+import 'package:flutter_hbb/models/multi_view_proto_model.dart';
 
 import '../../consts.dart';
 import '../../common/widgets/overlay.dart';
@@ -65,6 +66,10 @@ class RemotePage extends StatefulWidget {
   final DesktopTabController? tabController;
 
   FFI get ffi => (_lastState.value! as _RemotePageState)._ffi;
+
+  // PROTOTYPE multi-view: a clicked tile takes keyboard focus at once.
+  void protoRequestFocus() =>
+      (_lastState.value as _RemotePageState?)?._protoRequestFocus();
 
   void releaseMacOSInputForTabTransfer() {
     if (!isMacOS) return;
@@ -290,6 +295,24 @@ class _RemotePageState extends State<RemotePage>
   // inactive tab could hand remote input to this page.
   bool get _windowsCanFocusRemoteInput =>
       _isSelectedTab && _blockableOverlayState.middleBlocked.isFalse;
+
+  void _protoRequestFocus() {
+    if (isWindows &&
+        mounted &&
+        !_isWindowBlur &&
+        _windowsCanFocusRemoteInput &&
+        !_rawKeyFocusNode.hasFocus) {
+      _rawKeyFocusNode.requestFocus();
+    }
+  }
+
+  // PROTOTYPE multi-view: only the focused tile shows the floating toolbar.
+  bool get _protoHideToolbar {
+    final controller = widget.tabController;
+    if (controller == null) return false;
+    final tabs = controller.state.value.tabs;
+    return MultiViewProto.isEffective(tabs.length) && !_isSelectedTab;
+  }
 
   bool get _isMacOSKeyboardContextActive {
     return stateGlobal.isFocused.value && !_isWindowBlur && _isSelectedTab;
@@ -782,7 +805,8 @@ class _RemotePageState extends State<RemotePage>
               // Use Overlay to enable rebuild every time on menu button click.
               // Hide toolbar when relative mouse mode is active to prevent
               // cursor from escaping to toolbar area.
-              Obx(() => _ffi.inputModel.relativeMouseMode.value
+              Obx(() => _ffi.inputModel.relativeMouseMode.value ||
+                      _protoHideToolbar
                   ? const Offstage()
                   : _ffi.ffiModel.pi.isSet.isTrue
                       ? Overlay(initialEntries: [

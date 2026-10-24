@@ -14,6 +14,7 @@ import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:get/get.dart';
 
 import '../../models/model.dart';
+import 'package:flutter_hbb/models/multi_view_proto_model.dart';
 import '../../models/platform_model.dart';
 import '../../models/shortcut_model.dart';
 import '../../models/state_model.dart';
@@ -2274,6 +2275,12 @@ class InputModel {
 
     y -= CanvasModel.topToEdge;
     x -= CanvasModel.leftToEdge;
+    // PROTOTYPE multi-view: positions are window-based, so shift into the tile.
+    final protoTile = MultiViewProto.tileRect(parent.target?.id);
+    if (protoTile != null) {
+      x -= protoTile.left;
+      y -= protoTile.top;
+    }
     if (isMove) {
       final canvasModel = parent.target!.canvasModel;
 
