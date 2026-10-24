@@ -12,6 +12,16 @@ class _Binding extends Fake implements RustdeskImpl {
 
   @override
   bool isOutgoingOnly({dynamic hint}) => false;
+
+  @override
+  String mainGetPeerOptionSync(
+          {required String id, required String key, dynamic hint}) =>
+      '';
+
+  @override
+  String translate(
+          {required String name, required String locale, dynamic hint}) =>
+      name;
 }
 
 class _Page extends StatefulWidget {
@@ -62,6 +72,7 @@ void main() {
   tearDown(() {
     MultiViewModel.enabled = false;
     MultiViewModel.gridOn.value = false;
+    MultiViewModel.maximized.value = false;
     MultiViewModel.setTileRects({});
   });
 
@@ -146,5 +157,32 @@ void main() {
     expect(find.text('B'), findsOneWidget);
     expect(_pageState(tester, 'A'), same(stateA));
     expect(_pageState(tester, 'B'), same(stateB));
+  });
+
+  testWidgets(
+      'the maximise icon fills the window with its tile and restores the grid',
+      (tester) async {
+    final controller = _gridController([_tab('A'), _tab('B')]);
+    await tester.pumpWidget(MaterialApp(
+      home: MultiViewStack(controller: controller),
+    ));
+    const window = Rect.fromLTWH(0, 0, 800, 600);
+    final tileB = find.byKey(const ValueKey('B'));
+    expect(tester.getRect(tileB), const Rect.fromLTWH(400, 0, 400, 600));
+
+    await tester.tap(
+        find.descendant(of: tileB, matching: find.byIcon(Icons.fullscreen)));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.byKey(const ValueKey('page-A')), findsNothing);
+    expect(find.byKey(const ValueKey('page-B')), findsOneWidget);
+    expect(tester.getRect(tileB), window);
+
+    await tester.tap(find.descendant(
+        of: tileB, matching: find.byIcon(Icons.fullscreen_exit)));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('page-A')), findsOneWidget);
+    expect(tester.getRect(tileB), const Rect.fromLTWH(400, 0, 400, 600));
   });
 }

@@ -18,12 +18,21 @@ class MultiViewModel {
   /// The grid button's state. Not saved: every window starts with it off.
   static final gridOn = false.obs;
 
+  /// Whether the focused tile fills the window while the grid is on.
+  static final maximized = false.obs;
+
   /// Cell of each tile inside the tab content area, by tab key. Empty when
-  /// a single tile fills the area, so master's whole-window math runs.
+  /// a single tile fills the area (one tab, or a maximised tile), so
+  /// master's whole-window math runs.
   static final Map<String, Rect> _tileRects = {};
 
   static void init() {
     enabled = isWindows && mainGetLocalBoolOptionSync(kOptionAllowMultiView);
+  }
+
+  static void toggleGrid() {
+    maximized.value = false;
+    gridOn.toggle();
   }
 
   /// The flag is kept with more than [maxTiles] tabs, but the grid only
