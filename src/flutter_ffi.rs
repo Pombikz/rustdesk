@@ -2056,6 +2056,13 @@ pub fn session_send_mouse(session_id: SessionID, msg: String) {
         if let Some(session) = sessions::get_session_by_session_id(&session_id) {
             session.send_mouse(mask, x, y, alt, ctrl, shift, command);
         }
+        #[cfg(target_os = "windows")]
+        crate::keyboard::input_broadcast::on_mouse(
+            &session_id,
+            mask,
+            (x, y),
+            (alt, ctrl, shift, command),
+        );
     }
 }
 

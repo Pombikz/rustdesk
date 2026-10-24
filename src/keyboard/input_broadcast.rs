@@ -9,10 +9,14 @@ use super::{
     legacy_keyboard_mode, map_keyboard_mode, parse_add_lock_modes_modifiers,
     shortcuts::send_windows_menu_ctrl, translate_keyboard_mode,
 };
+use crate::common::input::{MOUSE_TYPE_DOWN, MOUSE_TYPE_MASK, MOUSE_TYPE_MOVE, MOUSE_TYPE_UP};
 use base::message_proto::{KeyEvent, KeyboardMode};
 use hbb_common::{log, SessionID};
 use rdev::{Event, EventType, Key};
-use std::{collections::HashMap, sync::Mutex};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Mutex,
+};
 
 lazy_static::lazy_static! {
     static ref BROADCAST: Mutex<Broadcast> = Default::default();
@@ -23,9 +27,21 @@ trait Peer {
     fn platform(&self) -> String;
     fn toggle_option(&self, name: &str) -> bool;
     fn send_key(&self, event: &KeyEvent);
+    /// The peer displays the tile shows, in the peer's mouse coordinates.
+    fn display_rect(&self) -> Option<Rect>;
+    fn send_mouse(&self, mask: i32, point: (i32, i32), modifiers: (bool, bool, bool, bool));
+}
+
+#[derive(Clone, Copy)]
+struct Rect {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
 }
 
 struct Target {
+    id: SessionID,
     session: crate::flutter::FlutterSession,
 }
 
@@ -41,16 +57,33 @@ impl Peer for Target {
     fn send_key(&self, event: &KeyEvent) {
         self.session.send_key_event(event);
     }
+
+    fn display_rect(&self) -> Option<Rect> {
+        crate::flutter::session_display_rect(&self.session, &self.id).map(|(x, y, w, h)| Rect {
+            x,
+            y,
+            w,
+            h,
+        })
+    }
+
+    fn send_mouse(&self, mask: i32, (x, y): (i32, i32), modifiers: (bool, bool, bool, bool)) {
+        let (alt, ctrl, shift, command) = modifiers;
+        self.session
+            .send_mouse(mask, x, y, alt, ctrl, shift, command);
+    }
 }
 
 fn lookup(id: &SessionID) -> Option<Target> {
-    crate::flutter::sessions::get_session_by_session_id(id).map(|session| Target { session })
+    crate::flutter::sessions::get_session_by_session_id(id)
+        .map(|session| Target { id: *id, session })
 }
 
 /// What a follower was sent down and has not been sent up yet.
 #[derive(Default)]
 struct Held {
     keys: HashMap<Key, (Event, KeyboardMode)>,
+    buttons: HashSet<i32>,
 }
 
 impl Held {
@@ -58,6 +91,9 @@ impl Held {
         let platform = peer.platform();
         for (key, (event, mode)) in self.keys {
             send_release(peer, &platform, key, event, mode);
+        }
+        for button in self.buttons {
+            peer.send_mouse(button << 3 | MOUSE_TYPE_UP, (0, 0), Default::default());
         }
     }
 }
@@ -189,6 +225,74 @@ impl Broadcast {
             }
         }
     }
+
+    /// Only absolute moves are mapped; every other type reaches each follower
+    /// unchanged, through its own `send_mouse`.
+    fn on_mouse<P: Peer>(
+        &mut self,
+        source: &SessionID,
+        mask: i32,
+        point: (i32, i32),
+        modifiers: (bool, bool, bool, bool),
+        lookup: impl Fn(&SessionID) -> Option<P>,
+    ) {
+        if self.leader.as_ref() != Some(source) {
+            return;
+        }
+        let event_type = mask & MOUSE_TYPE_MASK;
+        let button = mask >> 3;
+        let from = if event_type == MOUSE_TYPE_MOVE {
+            lookup(source).and_then(|leader| leader.display_rect())
+        } else {
+            None
+        };
+        for (id, held) in &mut self.followers {
+            let Some(peer) = lookup(id) else {
+                *held = Held::default();
+                continue;
+            };
+            if peer.toggle_option("view-only") {
+                continue;
+            }
+            let point = if event_type == MOUSE_TYPE_MOVE {
+                let to = peer.display_rect();
+                match from
+                    .zip(to)
+                    .and_then(|(from, to)| map_point(from, to, point))
+                {
+                    Some(point) => point,
+                    None => continue,
+                }
+            } else {
+                point
+            };
+            match event_type {
+                MOUSE_TYPE_DOWN => {
+                    held.buttons.insert(button);
+                }
+                MOUSE_TYPE_UP if !held.buttons.remove(&button) => continue,
+                _ => {}
+            }
+            peer.send_mouse(mask, point, modifiers);
+        }
+    }
+}
+
+/// Places `(x, y)` at the same fraction of `to` as it has of `from`, per axis,
+/// clamped to `to`.
+fn map_point(from: Rect, to: Rect, (x, y): (i32, i32)) -> Option<(i32, i32)> {
+    if from.w <= 0 || from.h <= 0 || to.w <= 0 || to.h <= 0 {
+        return None;
+    }
+    let axis = |v: i32, from_start: i32, from_len: i32, to_start: i32, to_len: i32| {
+        let (to_start, to_len) = (to_start as i64, to_len as i64);
+        let mapped = to_start + (v as i64 - from_start as i64) * to_len / from_len as i64;
+        mapped.clamp(to_start, to_start + to_len - 1) as i32
+    };
+    Some((
+        axis(x, from.x, from.w, to.x, to.w),
+        axis(y, from.y, from.h, to.y, to.h),
+    ))
 }
 
 fn send_release(peer: &impl Peer, platform: &str, key: Key, mut event: Event, mode: KeyboardMode) {
@@ -277,6 +381,20 @@ pub fn on_release_modifiers(source: &SessionID) {
     broadcast.release_modifiers(source, lookup);
 }
 
+/// `modifiers` is `(alt, ctrl, shift, command)`, as the leader's message carried them.
+pub fn on_mouse(
+    source: &SessionID,
+    mask: i32,
+    point: (i32, i32),
+    modifiers: (bool, bool, bool, bool),
+) {
+    let mut broadcast = BROADCAST.lock().unwrap();
+    if broadcast.leader.is_none() {
+        return;
+    }
+    broadcast.on_mouse(source, mask, point, modifiers, lookup);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -290,6 +408,7 @@ mod tests {
     struct FakePeer {
         platform: &'static str,
         keys: Rc<RefCell<Vec<KeyEvent>>>,
+        mouse: Rc<RefCell<Vec<(i32, (i32, i32))>>>,
     }
 
     impl Peer for FakePeer {
@@ -304,6 +423,14 @@ mod tests {
         fn send_key(&self, event: &KeyEvent) {
             self.keys.borrow_mut().push(event.clone());
         }
+
+        fn display_rect(&self) -> Option<Rect> {
+            None
+        }
+
+        fn send_mouse(&self, mask: i32, point: (i32, i32), _: (bool, bool, bool, bool)) {
+            self.mouse.borrow_mut().push((mask, point));
+        }
     }
 
     struct Peers(HashMap<SessionID, FakePeer>);
@@ -313,6 +440,7 @@ mod tests {
             let peer = |platform| FakePeer {
                 platform,
                 keys: Default::default(),
+                mouse: Default::default(),
             };
             Self(HashMap::from([
                 (WIN, peer("Windows")),
@@ -430,5 +558,57 @@ mod tests {
 
         leader_key(&mut broadcast, &peers, Key::KeyA, true);
         assert_eq!(peers.take_keys(LINUX), vec![(code(LINUX, Key::KeyA), true)]);
+    }
+
+    const FULL_HD: Rect = Rect {
+        x: 0,
+        y: 0,
+        w: 1920,
+        h: 1080,
+    };
+    const SECOND_FULL_HD: Rect = Rect { x: 1920, ..FULL_HD };
+    const HD_WITH_ORIGIN: Rect = Rect {
+        x: 100,
+        y: 50,
+        w: 1280,
+        h: 720,
+    };
+
+    #[test]
+    fn same_resolution_maps_to_the_same_pixel() {
+        for point in [(0, 0), (960, 540), (1919, 1079)] {
+            assert_eq!(map_point(FULL_HD, FULL_HD, point), Some(point));
+        }
+    }
+
+    #[test]
+    fn smaller_follower_gets_the_proportional_point_in_its_display() {
+        let map = |point| map_point(SECOND_FULL_HD, HD_WITH_ORIGIN, point);
+        assert_eq!(map((1920 + 960, 540)), Some((100 + 640, 50 + 360)));
+        assert_eq!(map((1920 + 480, 270)), Some((100 + 320, 50 + 180)));
+    }
+
+    #[test]
+    fn point_outside_is_clamped_to_the_follower_display() {
+        let map = |point| map_point(SECOND_FULL_HD, HD_WITH_ORIGIN, point);
+        assert_eq!(map((1920 * 2 + 40, -30)), Some((100 + 1279, 50)));
+        assert_eq!(map((0, 5000)), Some((100, 50 + 719)));
+    }
+
+    #[test]
+    fn dropped_follower_gets_one_up_for_a_held_button() {
+        use crate::common::input::MOUSE_BUTTON_LEFT;
+
+        let peers = Peers::new();
+        let mut broadcast = Broadcast::default();
+        broadcast.set(LEADER, &[WIN, LINUX], peers.lookup());
+        let down = MOUSE_BUTTON_LEFT << 3 | MOUSE_TYPE_DOWN;
+        broadcast.on_mouse(&LEADER, down, (0, 0), Default::default(), peers.lookup());
+        peers.0[&WIN].mouse.borrow_mut().clear();
+
+        broadcast.set(LEADER, &[LINUX], peers.lookup());
+        let up = MOUSE_BUTTON_LEFT << 3 | MOUSE_TYPE_UP;
+        assert_eq!(*peers.0[&WIN].mouse.borrow(), vec![(up, (0, 0))]);
+        assert_eq!(*peers.0[&LINUX].mouse.borrow(), vec![(down, (0, 0))]);
     }
 }
