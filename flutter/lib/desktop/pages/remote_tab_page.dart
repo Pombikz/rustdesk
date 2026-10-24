@@ -144,6 +144,8 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
             _RelativeMouseModeHint(tabController: tabController),
             if (MultiViewModel.enabled)
               MultiViewButton(controller: tabController),
+            if (MultiViewModel.enabled)
+              InputBroadcastButton(controller: tabController),
             const AddButton(),
           ],
         ),

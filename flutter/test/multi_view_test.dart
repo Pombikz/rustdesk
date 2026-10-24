@@ -74,6 +74,85 @@ void main() {
     MultiViewModel.gridOn.value = false;
     MultiViewModel.maximized.value = false;
     MultiViewModel.setTileRects({});
+    MultiViewModel.leader.value = null;
+    MultiViewModel.notFollowing.clear();
+    MultiViewModel.broadcastOn.value = false;
+  });
+
+  group('MultiViewModel.broadcastSnapshot', () {
+    const tiles = [
+      BroadcastTile('A', connected: true, viewOnly: false),
+      BroadcastTile('B', connected: true, viewOnly: false),
+      BroadcastTile('C', connected: true, viewOnly: false),
+      BroadcastTile('D', connected: true, viewOnly: true),
+    ];
+
+    BroadcastSnapshot snapshot(
+            {String focused = 'A', List<BroadcastTile> of = tiles}) =>
+        MultiViewModel.broadcastSnapshot(
+          grid: true,
+          on: true,
+          leader: 'A',
+          focused: focused,
+          notFollowing: {'C'},
+          tiles: of,
+        );
+
+    test(
+        'on with the leader focused sends to every following, connected follower that is not view-only',
+        () {
+      final on = snapshot();
+      expect(on.state, BroadcastState.on);
+      expect(on.leader, 'A');
+      expect(on.followers, ['B']);
+
+      final bDisconnected = snapshot(of: [
+        tiles[0],
+        const BroadcastTile('B', connected: false, viewOnly: false),
+        ...tiles.skip(2),
+      ]);
+      expect(bDisconnected.followers, isEmpty);
+    });
+
+    test('a leader that is not focused or not connected pauses broadcast',
+        () {
+      final notFocused = snapshot(focused: 'B');
+      final notConnected = snapshot(of: [
+        const BroadcastTile('A', connected: false, viewOnly: false),
+        ...tiles.skip(1),
+      ]);
+      for (final paused in [notFocused, notConnected]) {
+        expect(paused.state, BroadcastState.paused);
+        expect(paused.leader, isNull);
+        expect(paused.followers, isEmpty);
+      }
+    });
+
+    test(
+        'turning the grid off turns broadcast off and keeps the leader and follow switches',
+        () {
+      MultiViewModel.enabled = true;
+      MultiViewModel.gridOn.value = true;
+      MultiViewModel.makeLeader('A');
+      MultiViewModel.toggleFollow('C');
+      expect(MultiViewModel.toggleBroadcast(), isTrue);
+
+      MultiViewModel.toggleGrid();
+
+      expect(MultiViewModel.broadcastOn.value, isFalse);
+      final off = MultiViewModel.broadcastSnapshot(
+        grid: MultiViewModel.isGrid(tiles.length),
+        on: MultiViewModel.broadcastOn.value,
+        leader: MultiViewModel.leader.value,
+        focused: 'A',
+        notFollowing: MultiViewModel.notFollowing,
+        tiles: tiles,
+      );
+      expect(off.state, BroadcastState.off);
+      expect(off.followers, isEmpty);
+      expect(MultiViewModel.leader.value, 'A');
+      expect(MultiViewModel.notFollowing.toSet(), {'C'});
+    });
   });
 
   group('MultiViewModel.layout', () {

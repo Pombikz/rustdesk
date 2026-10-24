@@ -818,5 +818,14 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Enable multi-view", "Увімкнути мультиперегляд"),
         ("Multi-view", "Мультиперегляд"),
         ("Multi-view supports at most 4 tabs", "Мультиперегляд підтримує не більше 4 вкладок"),
+        ("Input broadcast", "Трансляція введення"),
+        ("Mark a leader first", "Спочатку призначте ведучого"),
+        ("Leader", "Ведучий"),
+        ("Follow", "Стежити"),
+        ("Not following", "Не стежить"),
+        ("Make leader", "Зробити ведучим"),
+        ("Focus is on {}; click {} to resume", "Фокус на {}; клацніть {}, щоб продовжити"),
+        ("{} (leader) is reconnecting", "{} (ведучий) перепідключається"),
+        ("Paused", "Призупинено"),
     ].iter().cloned().collect();
 }

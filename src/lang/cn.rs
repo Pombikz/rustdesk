@@ -818,5 +818,14 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Enable multi-view", "启用多视图"),
         ("Multi-view", "多视图"),
         ("Multi-view supports at most 4 tabs", "多视图最多支持 4 个标签页"),
+        ("Input broadcast", "输入广播"),
+        ("Mark a leader first", "请先设置主控"),
+        ("Leader", "主控"),
+        ("Follow", "跟随"),
+        ("Not following", "未跟随"),
+        ("Make leader", "设为主控"),
+        ("Focus is on {}; click {} to resume", "焦点在 {} 上；点击 {} 以恢复"),
+        ("{} (leader) is reconnecting", "{}（主控）正在重新连接"),
+        ("Paused", "已暂停"),
     ].iter().cloned().collect();
 }

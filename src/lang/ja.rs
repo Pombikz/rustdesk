@@ -818,5 +818,14 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Enable multi-view", "マルチビューを有効にする"),
         ("Multi-view", "マルチビュー"),
         ("Multi-view supports at most 4 tabs", "マルチビューは最大 4 タブまで対応しています"),
+        ("Input broadcast", "入力ブロードキャスト"),
+        ("Mark a leader first", "先にリーダーを指定してください"),
+        ("Leader", "リーダー"),
+        ("Follow", "フォロー"),
+        ("Not following", "フォローしない"),
+        ("Make leader", "リーダーにする"),
+        ("Focus is on {}; click {} to resume", "フォーカスは {} にあります。{} をクリックして再開します"),
+        ("{} (leader) is reconnecting", "{}（リーダー）は再接続中です"),
+        ("Paused", "一時停止中"),
     ].iter().cloned().collect();
 }
