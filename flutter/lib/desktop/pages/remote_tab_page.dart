@@ -8,6 +8,7 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/shared_state.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/models/input_model.dart';
+import 'package:flutter_hbb/models/multi_view_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:flutter_hbb/desktop/pages/remote_page.dart';
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
@@ -113,6 +114,7 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
   @override
   void initState() {
     super.initState();
+    MultiViewModel.init();
 
     if (!_isScreenRectSet) {
       Future.delayed(Duration.zero, () {

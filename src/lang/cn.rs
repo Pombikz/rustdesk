@@ -815,5 +815,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Off", "关"),
         ("api_server_connection_tip", "自定义服务器正在使用未加密的 HTTP。请联系管理员启用 HTTPS。"),
         ("api_server_empty_tip", "API 服务器留空时，自定义服务器默认使用 HTTP。请联系管理员启用 HTTPS。"),
+        ("Enable multi-view", "启用多视图"),
     ].iter().cloned().collect();
 }

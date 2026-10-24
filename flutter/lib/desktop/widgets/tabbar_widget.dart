@@ -10,7 +10,9 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/remote_page.dart';
 import 'package:flutter_hbb/desktop/pages/view_camera_page.dart';
+import 'package:flutter_hbb/desktop/widgets/multi_view.dart';
 import 'package:flutter_hbb/main.dart';
+import 'package:flutter_hbb/models/multi_view_model.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
@@ -554,6 +556,9 @@ class _DesktopTabState extends State<DesktopTab>
 
   List<Widget> _tabWidgets = [];
   Widget _buildPageView() {
+    if (tabType == DesktopTabType.remoteScreen && MultiViewModel.enabled) {
+      return MultiViewStack(controller: controller);
+    }
     final child = Container(
         child: Obx(() => PageView(
             controller: state.value.pageController,

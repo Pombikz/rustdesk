@@ -815,5 +815,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Off", "Uit"),
         ("api_server_connection_tip", ""),
         ("api_server_empty_tip", ""),
+        ("Enable multi-view", "Meervoudige weergave inschakelen"),
     ].iter().cloned().collect();
 }
