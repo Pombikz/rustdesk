@@ -827,5 +827,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Focus is on {}; click {} to resume", "포커스가 {}에 있습니다. {}을(를) 클릭하여 재개하세요"),
         ("{} (leader) is reconnecting", "{}(리더) 재연결 중"),
         ("Paused", "일시 중지됨"),
+        ("input-broadcast-shortcut-tip", "Ctrl+Alt가 없는 조합(예: Ctrl+Shift+F9)을 선택하세요. Ctrl+Alt는 단축키가 인식되기 전에 상대 마우스 모드를 종료합니다."),
     ].iter().cloned().collect();
 }

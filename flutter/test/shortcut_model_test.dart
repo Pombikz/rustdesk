@@ -5,6 +5,7 @@ import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_hbb/common.dart' show SessionID;
+import 'package:flutter_hbb/common/widgets/keyboard_shortcuts/shortcut_actions.dart';
 import 'package:flutter_hbb/common/widgets/keyboard_shortcuts/shortcut_constants.dart';
 import 'package:flutter_hbb/generated_bridge.dart';
 import 'package:flutter_hbb/consts.dart';
@@ -12,6 +13,7 @@ import 'package:flutter_hbb/models/chat_model.dart';
 import 'package:flutter_hbb/models/input_model.dart';
 import 'package:flutter_hbb/models/local_flutter_shortcuts.dart';
 import 'package:flutter_hbb/models/model.dart';
+import 'package:flutter_hbb/models/multi_view_model.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/shortcut_model.dart';
 import 'package:uuid/uuid.dart';
@@ -213,6 +215,36 @@ void main() {
     expect(chat.opened, [MessageKey(session.id, ChatModel.clientModeID)]);
     expect(
         chat.messages.keys, [MessageKey(session.id, ChatModel.clientModeID)]);
+  });
+
+  test('Input broadcast is listed in the Keyboard group', () {
+    final keyboard = kKeyboardShortcutActionGroups
+        .firstWhere((group) => group.titleKey == 'Keyboard');
+    expect(allActionEntries([keyboard]).map((entry) => entry.id),
+        contains(kShortcutActionToggleInputBroadcast));
+  });
+
+  test('Input broadcast shortcut toggles the window broadcast state', () async {
+    platformFFI.setBindingForTesting(_ChatBinding());
+    MultiViewModel.enabled = true;
+    MultiViewModel.leader.value = 'leader-tab';
+    addTearDown(() {
+      MultiViewModel.enabled = false;
+      MultiViewModel.leader.value = null;
+      MultiViewModel.broadcastOn.value = false;
+      session.chatModel.dispose();
+      session.chatModel.inputNode.dispose();
+      session.ffiModel.dispose();
+    });
+    registerSessionShortcutActions(session);
+
+    model.onTriggered(kShortcutActionToggleInputBroadcast);
+    await pumpEventQueue();
+    expect(MultiViewModel.broadcastOn.value, isTrue);
+
+    model.onTriggered(kShortcutActionToggleInputBroadcast);
+    await pumpEventQueue();
+    expect(MultiViewModel.broadcastOn.value, isFalse);
   });
 
   test('a removed menu action cannot run its cached callback', () async {

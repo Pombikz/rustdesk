@@ -16,6 +16,7 @@ import '../desktop/widgets/remote_toolbar.dart' show ToolbarState;
 import 'chat_model.dart' show ChatModel, MessageKey, VoiceCallStatus;
 import '../desktop/widgets/tabbar_widget.dart' show DesktopTabController;
 import '../models/model.dart';
+import '../models/multi_view_model.dart';
 import '../models/platform_model.dart';
 import '../models/state_model.dart';
 
@@ -224,6 +225,7 @@ class ShortcutModel {
           kShortcutActionSwitchDisplayAll,
           kShortcutActionToggleEnableFileCopyPaste,
         ],
+        if (!isWindows || isWeb) kShortcutActionToggleInputBroadcast,
         if (isMobile) ...[
           kShortcutActionKeyboardModeLegacy,
           kShortcutActionKeyboardModeMap,
@@ -647,6 +649,16 @@ void registerSessionShortcutActions(
         false;
     ffi.ffiModel.setShowMyCursor(showMyCursor);
   });
+
+  // Input broadcast state is per window, so any focused tile toggles it. On a
+  // follower it turns on paused, as broadcast runs only from the leader.
+  if (MultiViewModel.enabled) {
+    ffi.shortcutModel.register(kShortcutActionToggleInputBroadcast, () {
+      if (!MultiViewModel.toggleBroadcast()) {
+        showToast(translate('Mark a leader first'));
+      }
+    });
+  }
 
   // Toggle Reverse mouse wheel — read current 'Y'/'N' (falling back to user
   // default), flip, write back.

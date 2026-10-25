@@ -33,6 +33,7 @@ import '../../../models/shortcut_model.dart';
 import 'display.dart';
 import 'recording_dialog.dart';
 import 'shortcut_actions.dart';
+import 'shortcut_constants.dart';
 import 'shortcut_utils.dart';
 
 /// The shared body widget. Render this inside a platform-styled Scaffold.
@@ -379,7 +380,12 @@ class KeyboardShortcutsPageBodyState extends State<KeyboardShortcutsPageBody> {
         children: [
           Expanded(
             flex: 5,
-            child: Text(translate(entry.labelKey)),
+            child: entry.id == kShortcutActionToggleInputBroadcast
+                ? Tooltip(
+                    message: translate('input-broadcast-shortcut-tip'),
+                    child: Text(translate(entry.labelKey)),
+                  )
+                : Text(translate(entry.labelKey)),
           ),
           Expanded(
             flex: 4,

@@ -290,5 +290,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("shortcut-key-not-supported", "\"{}\" can't be used as a shortcut."),
         ("api_server_connection_tip", "Your custom server uses unencrypted HTTP. Contact your administrator to enable HTTPS."),
         ("api_server_empty_tip", "With API Server empty, your custom server defaults to HTTP. Contact your administrator to enable HTTPS."),
+        ("input-broadcast-shortcut-tip", "Pick a chord without Ctrl+Alt, such as Ctrl+Shift+F9: Ctrl+Alt exits relative mouse mode before the shortcut is matched."),
     ].iter().cloned().collect();
 }

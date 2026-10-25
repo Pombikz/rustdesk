@@ -825,5 +825,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Focus is on {}; click {} to resume", ""),
         ("{} (leader) is reconnecting", ""),
         ("Paused", ""),
+        ("input-broadcast-shortcut-tip", ""),
     ].iter().cloned().collect();
 }

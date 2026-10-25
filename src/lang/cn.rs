@@ -827,5 +827,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Focus is on {}; click {} to resume", "焦点在 {} 上；点击 {} 以恢复"),
         ("{} (leader) is reconnecting", "{}（主控）正在重新连接"),
         ("Paused", "已暂停"),
+        ("input-broadcast-shortcut-tip", "请选择不含 Ctrl+Alt 的组合键，例如 Ctrl+Shift+F9：Ctrl+Alt 会在匹配快捷键之前退出相对鼠标模式。"),
     ].iter().cloned().collect();
 }

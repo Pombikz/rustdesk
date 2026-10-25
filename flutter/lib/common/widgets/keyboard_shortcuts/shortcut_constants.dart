@@ -79,6 +79,7 @@ const kShortcutActionImageQualityLow = 'image_quality_low';
 const kShortcutActionSendClipboardKeystrokes = 'send_clipboard_keystrokes';
 const kShortcutActionToggleVoiceCall = 'toggle_voice_call';
 const kShortcutActionToggleViewOnly = 'toggle_view_only';
+const kShortcutActionToggleInputBroadcast = 'toggle_input_broadcast';
 
 const kShortcutLocalConfigKey = 'keyboard-shortcuts';
 const kShortcutEventName = 'shortcut_triggered';

@@ -72,6 +72,7 @@ pub mod action_id {
     pub const SWITCH_TAB_PREV: &str           = "switch_tab_prev";
     pub const TOGGLE_VOICE_CALL: &str         = "toggle_voice_call";
     pub const TOGGLE_VIEW_ONLY: &str          = "toggle_view_only";
+    pub const TOGGLE_INPUT_BROADCAST: &str    = "toggle_input_broadcast";
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

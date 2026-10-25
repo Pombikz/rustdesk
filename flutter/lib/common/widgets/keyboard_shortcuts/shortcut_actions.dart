@@ -159,6 +159,8 @@ final List<KeyboardShortcutActionGroup> kKeyboardShortcutActionGroups = [
         kShortcutActionToggleReverseMouseWheel, 'Reverse mouse wheel'),
     KeyboardShortcutActionEntry(
         kShortcutActionToggleSwapLeftRightMouse, 'swap-left-right-mouse'),
+    KeyboardShortcutActionEntry(
+        kShortcutActionToggleInputBroadcast, 'Input broadcast'),
   ]),
   KeyboardShortcutActionGroup('Chat', [
     KeyboardShortcutActionEntry(kShortcutActionToggleChat, 'Text chat'),

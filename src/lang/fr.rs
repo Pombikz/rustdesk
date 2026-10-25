@@ -827,5 +827,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Focus is on {}; click {} to resume", "Le focus est sur {} ; cliquez sur {} pour reprendre"),
         ("{} (leader) is reconnecting", "{} (meneur) se reconnecte"),
         ("Paused", "En pause"),
+        ("input-broadcast-shortcut-tip", "Choisissez une combinaison sans Ctrl+Alt, par exemple Ctrl+Shift+F9 : Ctrl+Alt quitte le mode souris relative avant que le raccourci soit reconnu."),
     ].iter().cloned().collect();
 }
