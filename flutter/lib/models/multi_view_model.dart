@@ -37,6 +37,8 @@ class MultiViewModel {
 
   static const int maxTiles = 4;
 
+  static const double toolbarScale = 0.8;
+
   /// The grid button's state. Not saved: every window starts with it off.
   static final gridOn = false.obs;
 

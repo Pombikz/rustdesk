@@ -317,6 +317,10 @@ class _RemotePageState extends State<RemotePage>
       MultiViewModel.isGrid(widget.tabController?.length ?? 0) &&
       !_isSelectedTab;
 
+  bool get _multiViewTiled =>
+      MultiViewModel.isGrid(widget.tabController?.length ?? 0) &&
+      MultiViewModel.maximized.isFalse;
+
   bool get _isMacOSKeyboardContextActive {
     return stateGlobal.isFocused.value && !_isWindowBlur && _isSelectedTab;
   }
@@ -752,7 +756,14 @@ class _RemotePageState extends State<RemotePage>
             }
           },
           setRemoteState: setState,
+          scale: _multiViewTiled ? MultiViewModel.toolbarScale : 1.0,
+          handleOnly: _multiViewHidesToolbar,
         );
+
+    // The toolbar sits in an Overlay, which a parent Obx doesn't rebuild.
+    multiViewToolbar(BuildContext context) => MultiViewModel.enabled
+        ? Obx(() => remoteToolbar(context))
+        : remoteToolbar(context);
 
     bodyWidget() {
       return Stack(
@@ -808,14 +819,13 @@ class _RemotePageState extends State<RemotePage>
               // Use Overlay to enable rebuild every time on menu button click.
               // Hide toolbar when relative mouse mode is active to prevent
               // cursor from escaping to toolbar area.
-              Obx(() => _ffi.inputModel.relativeMouseMode.value ||
-                      _multiViewHidesToolbar
+              Obx(() => _ffi.inputModel.relativeMouseMode.value
                   ? const Offstage()
                   : _ffi.ffiModel.pi.isSet.isTrue
                       ? Overlay(initialEntries: [
-                          OverlayEntry(builder: remoteToolbar)
+                          OverlayEntry(builder: multiViewToolbar)
                         ])
-                      : remoteToolbar(context)),
+                      : multiViewToolbar(context)),
               _ffi.ffiModel.pi.isSet.isFalse ? emptyOverlay() : Offstage(),
             ],
           ),

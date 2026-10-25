@@ -444,6 +444,11 @@ class RemoteToolbar extends StatefulWidget {
   final Function(int, Function(bool)) onEnterOrLeaveImageSetter;
   final Function(int) onEnterOrLeaveImageCleaner;
   final Function(VoidCallback) setRemoteState;
+  final double scale;
+
+  /// Shows only the collapsed handle, for a multi-view tile that isn't
+  /// focused. The tile ignores its pointer, so a tap on it focuses the tile.
+  final bool handleOnly;
 
   RemoteToolbar({
     Key? key,
@@ -453,6 +458,8 @@ class RemoteToolbar extends StatefulWidget {
     required this.onEnterOrLeaveImageSetter,
     required this.onEnterOrLeaveImageCleaner,
     required this.setRemoteState,
+    this.scale = 1.0,
+    this.handleOnly = false,
   }) : super(key: key);
 
   @override
@@ -708,15 +715,22 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
         }
       });
 
-      final toolbar = Align(
+      Widget toolbar = Align(
         alignment: _alignmentForEdge(edge, _fraction.value),
         child: KeyedSubtree(
           key: _toolbarKey,
-          child: collapse.isFalse
+          child: collapse.isFalse && !widget.handleOnly
               ? _buildToolbar(context, edge, isHorizontal)
               : _buildDraggableCollapse(context, edge, isHorizontal),
         ),
       );
+      if (widget.scale != 1.0) {
+        toolbar = Transform.scale(
+          scale: widget.scale,
+          alignment: _alignmentForEdge(edge, _fraction.value),
+          child: toolbar,
+        );
+      }
 
       // Always return the Stack — even when not dragging — so the toolbar's
       // position in the Element tree stays stable. Wrapping/unwrapping it
