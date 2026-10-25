@@ -1,12 +1,12 @@
-# THROWAWAY, never merge. Runs the Dart tests for the input broadcast slice 3
+# THROWAWAY, never merge. Runs the Dart tests for the input broadcast slice 4
 # branch on the Pombikz fork, whose inherited workflows are disabled.
-name: Input broadcast slice 3 Dart tests
+name: Input broadcast slice 4 Dart tests
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - ci/multi-view-p2-broadcast-tests
+      - ci/multi-view-p2-hotkey-tests
 
 env:
   FLUTTER_VERSION: "3.24.5"
@@ -39,9 +39,9 @@ jobs:
           name: bridge-artifact
           path: ./
 
-      - name: Run the multi-view test
+      - name: Run the shortcut model test
         working-directory: flutter
-        run: flutter test --timeout 60s test/multi_view_test.dart
+        run: flutter test --timeout 60s test/shortcut_model_test.dart
 
       - name: Run all Dart tests
         if: ${{ always() }}

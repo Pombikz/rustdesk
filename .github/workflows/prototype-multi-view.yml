@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - ci/multi-view-p2-broadcast-tests
+      - ci/multi-view-p2-hotkey-tests
 
 env:
   SCITER_RUST_VERSION: "1.75" # https://github.com/rustdesk/rustdesk/discussions/7503, also 1.78 has ABI change which causes our sciter version not working, https://blog.rust-lang.org/2024/03/30/i128-layout-update.html
@@ -288,5 +288,5 @@ jobs:
       - name: Upload unsigned portable build
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: rustdesk-multi-view-p2-broadcast-windows-x64
+          name: rustdesk-multi-view-p2-hotkey-windows-x64
           path: rustdesk
