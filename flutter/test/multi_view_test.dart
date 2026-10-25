@@ -264,4 +264,17 @@ void main() {
     expect(find.byKey(const ValueKey('page-A')), findsOneWidget);
     expect(tester.getRect(tileB), const Rect.fromLTWH(400, 0, 400, 600));
   });
+
+  testWidgets('with 3 tabs the empty fourth cell shows New Connection',
+      (tester) async {
+    final controller = _gridController([_tab('A'), _tab('B'), _tab('C')]);
+    await tester.pumpWidget(MaterialApp(
+      home: MultiViewStack(controller: controller),
+    ));
+
+    final cell = find.text('New Connection');
+    expect(cell, findsOneWidget);
+    expect(const Rect.fromLTWH(400, 300, 400, 300)
+        .contains(tester.getCenter(cell)), isTrue);
+  });
 }

@@ -8,6 +8,7 @@ import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/model.dart';
 import 'package:flutter_hbb/models/multi_view_model.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
+import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:get/get.dart';
 
 const _kBroadcastColor = Color(0xFFFFA424);
@@ -137,6 +138,11 @@ class _MultiViewStackState extends State<MultiViewStack> {
                   ),
                 ),
               ),
+            if (tiled && tabs.length == 3)
+              Positioned.fromRect(
+                rect: MultiViewModel.layout(4, constraints.biggest)[3],
+                child: const _EmptyCell(),
+              ),
             Positioned(
               left: 0,
               top: 0,
@@ -173,6 +179,24 @@ class _MultiViewStackState extends State<MultiViewStack> {
           ),
         ),
       ];
+}
+
+/// The fourth cell with 3 tabs: the tab bar's New Connection action.
+class _EmptyCell extends StatelessWidget {
+  const _EmptyCell({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: TextButton.icon(
+        onPressed: () => rustDeskWinManager.call(
+            WindowType.Main, kWindowMainWindowOnTop, ""),
+        icon: const Icon(Icons.add, color: Colors.white70),
+        label: Text(translate('New Connection'),
+            style: const TextStyle(color: Colors.white70)),
+      ),
+    );
+  }
 }
 
 /// Bottom-left badge of a tile: state dot, peer name, ping and the
