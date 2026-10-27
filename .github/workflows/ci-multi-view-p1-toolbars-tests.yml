@@ -1,12 +1,12 @@
 # THROWAWAY, never merge. Runs the Dart tests for the input broadcast slice 3
 # branch on the Pombikz fork, whose inherited workflows are disabled.
-name: Input broadcast slice 3 Dart tests
+name: Multi-view toolbars slice Dart tests
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - ci/multi-view-p2-broadcast-tests
+      - ci/multi-view-p1-toolbars-tests
 
 env:
   FLUTTER_VERSION: "3.24.5"
